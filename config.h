@@ -6,6 +6,11 @@
  * font: see http://freedesktop.org/software/fontconfig/fontconfig-user.html
  */
 static char *font = "Liberation Mono:pixelsize=12:antialias=true:autohint=true";
+/* Spare fonts */
+static char *font2[] = {
+    "",
+};
+
 static int borderpx = 2;
 
 /*
@@ -177,6 +182,7 @@ const unsigned int mousescrollincrement = 4;
  */
 ResourcePref resources[] = {
 		{ "font",         STRING,  &font },
+		{ "font2",         STRING,  &font2[0] },
 		{ "color0",       STRING,  &colorname[0] },
 		{ "color1",       STRING,  &colorname[1] },
 		{ "color2",       STRING,  &colorname[2] },
