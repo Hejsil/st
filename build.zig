@@ -2,7 +2,7 @@ const std = @import("std");
 const Builder = std.build.Builder;
 
 pub fn build(b: *Builder) !void {
-    b.setPreferredReleaseMode(.ReleaseFast);
+    b.setPreferredReleaseMode(.ReleaseSafe);
     const mode = b.standardReleaseOptions();
     const target = b.standardTargetOptions(.{});
     const cflags = [_][]const u8{
