@@ -110,8 +110,6 @@ char *getsel(void);
 
 size_t utf8encode(Rune, char *);
 
-void *xmalloc(size_t);
-void *xrealloc(void *, size_t);
 char *xstrdup(char *);
 
 /* config.h globals */

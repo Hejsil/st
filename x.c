@@ -758,7 +758,7 @@ xresize(int col, int row)
 	xclear(0, 0, win.w, win.h);
 
 	/* resize to new width */
-	xw.specbuf = xrealloc(xw.specbuf, col * sizeof(GlyphFontSpec));
+	xw.specbuf = realloc(xw.specbuf, col * sizeof(GlyphFontSpec));
 }
 
 ushort
@@ -803,7 +803,7 @@ xloadcols(void)
 			XftColorFree(xw.dpy, xw.vis, xw.cmap, cp);
 	} else {
 		dc.collen = MAX(LEN(colorname), 256);
-		dc.col = xmalloc(dc.collen * sizeof(Color));
+		dc.col = malloc(dc.collen * sizeof(Color));
 	}
 
 	for (i = 0; i < dc.collen; i++)
@@ -1081,7 +1081,7 @@ xloadsparefonts(void)
 	/* Allocate memory for cache entries. */
 	if (frccap < 4 * fc) {
 		frccap += 4 * fc - frccap;
-		frc = xrealloc(frc, frccap * sizeof(Fontcache));
+		frc = realloc(frc, frccap * sizeof(Fontcache));
 	}
 
 	for (fp = font2; fp - font2 < fc; ++fp) {
@@ -1269,7 +1269,7 @@ xinit(int cols, int rows)
 	XFillRectangle(xw.dpy, xw.buf, dc.gc, 0, 0, win.w, win.h);
 
 	/* font spec buffer */
-	xw.specbuf = xmalloc(cols * sizeof(GlyphFontSpec));
+	xw.specbuf = malloc(cols * sizeof(GlyphFontSpec));
 
 	/* Xft rendering context */
 	xw.draw = XftDrawCreate(xw.dpy, xw.buf, xw.vis, xw.cmap);
@@ -1423,7 +1423,7 @@ xmakeglyphfontspecs(XftGlyphFontSpec *specs, const Glyph *glyphs, int len, int x
 			/* Allocate memory for the new cache entry. */
 			if (frclen >= frccap) {
 				frccap += 16;
-				frc = xrealloc(frc, frccap * sizeof(Fontcache));
+				frc = realloc(frc, frccap * sizeof(Fontcache));
 			}
 
 			frc[frclen].font = XftFontOpenPattern(xw.dpy,
@@ -2190,7 +2190,7 @@ main(int argc, char *argv[])
 		opt_embed = EARGF(usage());
 		break;
 	case 'v':
-		die("%s " VERSION "\n", argv0);
+		die("%s\n", argv0);
 		break;
 	default:
 		usage();
@@ -2215,7 +2215,6 @@ run:
 	tnew(cols, rows);
 	xinit(cols, rows);
 	xsetenv();
-	selinit();
 	run();
 
 	return 0;

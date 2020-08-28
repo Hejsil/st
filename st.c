@@ -6,6 +6,7 @@
 #include <pwd.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
@@ -214,145 +215,28 @@ static void selnormalize(void);
 static void selscroll(int, int);
 static void selsnap(int *, int *, int);
 
-static size_t utf8decode(const char *, Rune *, size_t);
-static Rune utf8decodebyte(char, size_t *);
-static char utf8encodebyte(Rune, size_t);
-static size_t utf8validate(Rune *, size_t);
+size_t utf8decode(const char *, Rune *, size_t);
+size_t utf8encode(Rune u, char *c);
 
 static char *base64dec(const char *);
 static char base64dec_getc(const char **);
 
-static ssize_t xwrite(int, const char *, size_t);
+ssize_t xwrite(int32_t, const char *, size_t);
 
 /* Globals */
+extern Selection sel;
+extern int32_t cmdfd;
+
 static Term term;
-static Selection sel;
 static CSIEscape csiescseq;
 static STREscape strescseq;
 static int iofd = 1;
-static int cmdfd;
 static pid_t pid;
 
 static uchar utfbyte[UTF_SIZ + 1] = {0x80,    0, 0xC0, 0xE0, 0xF0};
 static uchar utfmask[UTF_SIZ + 1] = {0xC0, 0x80, 0xE0, 0xF0, 0xF8};
 static Rune utfmin[UTF_SIZ + 1] = {       0,    0,  0x80,  0x800,  0x10000};
 static Rune utfmax[UTF_SIZ + 1] = {0x10FFFF, 0x7F, 0x7FF, 0xFFFF, 0x10FFFF};
-
-ssize_t
-xwrite(int fd, const char *s, size_t len)
-{
-	size_t aux = len;
-	ssize_t r;
-
-	while (len > 0) {
-		r = write(fd, s, len);
-		if (r < 0)
-			return r;
-		len -= r;
-		s += r;
-	}
-
-	return aux;
-}
-
-void *
-xmalloc(size_t len)
-{
-	void *p;
-
-	if (!(p = malloc(len)))
-		die("malloc: %s\n", strerror(errno));
-
-	return p;
-}
-
-void *
-xrealloc(void *p, size_t len)
-{
-	if ((p = realloc(p, len)) == NULL)
-		die("realloc: %s\n", strerror(errno));
-
-	return p;
-}
-
-char *
-xstrdup(char *s)
-{
-	if ((s = strdup(s)) == NULL)
-		die("strdup: %s\n", strerror(errno));
-
-	return s;
-}
-
-size_t
-utf8decode(const char *c, Rune *u, size_t clen)
-{
-	size_t i, j, len, type;
-	Rune udecoded;
-
-	*u = UTF_INVALID;
-	if (!clen)
-		return 0;
-	udecoded = utf8decodebyte(c[0], &len);
-	if (!BETWEEN(len, 1, UTF_SIZ))
-		return 1;
-	for (i = 1, j = 1; i < clen && j < len; ++i, ++j) {
-		udecoded = (udecoded << 6) | utf8decodebyte(c[i], &type);
-		if (type != 0)
-			return j;
-	}
-	if (j < len)
-		return 0;
-	*u = udecoded;
-	utf8validate(u, len);
-
-	return len;
-}
-
-Rune
-utf8decodebyte(char c, size_t *i)
-{
-	for (*i = 0; *i < LEN(utfmask); ++(*i))
-		if (((uchar)c & utfmask[*i]) == utfbyte[*i])
-			return (uchar)c & ~utfmask[*i];
-
-	return 0;
-}
-
-size_t
-utf8encode(Rune u, char *c)
-{
-	size_t len, i;
-
-	len = utf8validate(&u, 0);
-	if (len > UTF_SIZ)
-		return 0;
-
-	for (i = len - 1; i != 0; --i) {
-		c[i] = utf8encodebyte(u, 0);
-		u >>= 6;
-	}
-	c[0] = utf8encodebyte(u, len);
-
-	return len;
-}
-
-char
-utf8encodebyte(Rune u, size_t i)
-{
-	return utfbyte[i] | (u & ~utfmask[i]);
-}
-
-size_t
-utf8validate(Rune *u, size_t i)
-{
-	if (!BETWEEN(*u, utfmin[i], utfmax[i]) || BETWEEN(*u, 0xD800, 0xDFFF))
-		*u = UTF_INVALID;
-	for (i = 1; *u > utfmax[i]; ++i)
-		;
-
-	return i;
-}
 
 static const char base64_digits[] = {
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -385,7 +269,7 @@ base64dec(const char *src)
 
 	if (in_len % 4)
 		in_len += 4 - (in_len % 4);
-	result = dst = xmalloc(in_len / 4 * 3 + 1);
+	result = dst = malloc(in_len / 4 * 3 + 1);
 	while (*src) {
 		int a = base64_digits[(unsigned char) base64dec_getc(&src)];
 		int b = base64_digits[(unsigned char) base64dec_getc(&src)];
@@ -406,14 +290,6 @@ base64dec(const char *src)
 	}
 	*dst = '\0';
 	return result;
-}
-
-void
-selinit(void)
-{
-	sel.mode = SEL_IDLE;
-	sel.snap = 0;
-	sel.ob.x = -1;
 }
 
 int
@@ -604,7 +480,7 @@ getsel(void)
 		return NULL;
 
 	bufsize = (term.col+1) * (sel.ne.y-sel.nb.y+1) * UTF_SIZ;
-	ptr = str = xmalloc(bufsize);
+	ptr = str = malloc(bufsize);
 
 	/* append every set & selected glyph to the selection */
 	for (y = sel.nb.y; y <= sel.ne.y; y++) {
@@ -2024,7 +1900,7 @@ void
 strreset(void)
 {
 	strescseq = (STREscape){
-		.buf = xrealloc(strescseq.buf, STR_BUF_SIZ),
+		.buf = realloc(strescseq.buf, STR_BUF_SIZ),
 		.siz = STR_BUF_SIZ,
 	};
 }
@@ -2410,7 +2286,7 @@ tputc(Rune u)
 			if (strescseq.siz > (SIZE_MAX - UTF_SIZ) / 2)
 				return;
 			strescseq.siz *= 2;
-			strescseq.buf = xrealloc(strescseq.buf, strescseq.siz);
+			strescseq.buf = realloc(strescseq.buf, strescseq.siz);
 		}
 
 		memmove(&strescseq.buf[strescseq.len], c, len);
@@ -2563,13 +2439,13 @@ tresize(int col, int row)
 	}
 
 	/* resize to new height */
-	term.line = xrealloc(term.line, row * sizeof(Line));
-	term.alt  = xrealloc(term.alt,  row * sizeof(Line));
-	term.dirty = xrealloc(term.dirty, row * sizeof(*term.dirty));
-	term.tabs = xrealloc(term.tabs, col * sizeof(*term.tabs));
+	term.line = realloc(term.line, row * sizeof(Line));
+	term.alt  = realloc(term.alt,  row * sizeof(Line));
+	term.dirty = realloc(term.dirty, row * sizeof(*term.dirty));
+	term.tabs = realloc(term.tabs, col * sizeof(*term.tabs));
 
 	for (i = 0; i < HISTSIZE; i++) {
-		term.hist[i] = xrealloc(term.hist[i], col * sizeof(Glyph));
+		term.hist[i] = realloc(term.hist[i], col * sizeof(Glyph));
 		for (j = mincol; j < col; j++) {
 			term.hist[i][j] = term.c.attr;
 			term.hist[i][j].u = ' ';
@@ -2578,14 +2454,14 @@ tresize(int col, int row)
 
 	/* resize each row to new width, zero-pad if needed */
 	for (i = 0; i < minrow; i++) {
-		term.line[i] = xrealloc(term.line[i], col * sizeof(Glyph));
-		term.alt[i]  = xrealloc(term.alt[i],  col * sizeof(Glyph));
+		term.line[i] = realloc(term.line[i], col * sizeof(Glyph));
+		term.alt[i]  = realloc(term.alt[i],  col * sizeof(Glyph));
 	}
 
 	/* allocate any new rows */
 	for (/* i = minrow */; i < row; i++) {
-		term.line[i] = xmalloc(col * sizeof(Glyph));
-		term.alt[i] = xmalloc(col * sizeof(Glyph));
+		term.line[i] = malloc(col * sizeof(Glyph));
+		term.alt[i] = malloc(col * sizeof(Glyph));
 	}
 	if (col > term.col) {
 		bp = term.tabs + term.col;
