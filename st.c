@@ -175,7 +175,7 @@ static void strhandle(void);
 static void strparse(void);
 static void strreset(void);
 
-static void tprinter(char *, size_t);
+void tprinter(char *, size_t);
 static void tdumpsel(void);
 static void tdumpline(int);
 static void tdump(void);
@@ -185,9 +185,9 @@ static void tdeletechar(int);
 static void tdeleteline(int);
 static void tinsertblank(int);
 static void tinsertblankline(int);
-static int tlinelen(int);
-static void tmoveto(int, int);
-static void tmoveato(int, int);
+int tlinelen(int);
+void tmoveto(int, int);
+void tmoveato(int, int);
 static void tnewline(int);
 static void tputtab(int);
 static void tputc(Rune);
@@ -196,7 +196,7 @@ static void tscrollup(int, int, int);
 static void tscrolldown(int, int, int);
 static void tsetattr(int *, int);
 static void tsetchar(Rune, Glyph *, int, int);
-static void tsetdirt(int, int);
+void tsetdirt(int, int);
 static void tsetscroll(int, int);
 static void tswapscreen(void);
 static void tsetmode(int, int, int *, int);
@@ -218,19 +218,18 @@ static void selsnap(int *, int *, int);
 size_t utf8decode(const char *, Rune *, size_t);
 size_t utf8encode(Rune u, char *c);
 
-static char *base64dec(const char *);
-static char base64dec_getc(const char **);
+char *base64dec(const char *);
 
 ssize_t xwrite(int32_t, const char *, size_t);
 
 /* Globals */
+extern Term term;
 extern Selection sel;
 extern int32_t cmdfd;
+extern int iofd;
 
-static Term term;
 static CSIEscape csiescseq;
 static STREscape strescseq;
-static int iofd = 1;
 static pid_t pid;
 
 static uchar utfbyte[UTF_SIZ + 1] = {0x80,    0, 0xC0, 0xE0, 0xF0};
@@ -252,59 +251,6 @@ static const char base64_digits[] = {
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
-
-char
-base64dec_getc(const char **src)
-{
-	while (**src && !isprint(**src))
-		(*src)++;
-	return **src ? *((*src)++) : '=';  /* emulate padding if string ends */
-}
-
-char *
-base64dec(const char *src)
-{
-	size_t in_len = strlen(src);
-	char *result, *dst;
-
-	if (in_len % 4)
-		in_len += 4 - (in_len % 4);
-	result = dst = malloc(in_len / 4 * 3 + 1);
-	while (*src) {
-		int a = base64_digits[(unsigned char) base64dec_getc(&src)];
-		int b = base64_digits[(unsigned char) base64dec_getc(&src)];
-		int c = base64_digits[(unsigned char) base64dec_getc(&src)];
-		int d = base64_digits[(unsigned char) base64dec_getc(&src)];
-
-		/* invalid input. 'a' can be -1, e.g. if src is "\n" (c-str) */
-		if (a == -1 || b == -1)
-			break;
-
-		*dst++ = (a << 2) | ((b & 0x30) >> 4);
-		if (c == -1)
-			break;
-		*dst++ = ((b & 0x0f) << 4) | ((c & 0x3c) >> 2);
-		if (d == -1)
-			break;
-		*dst++ = ((c & 0x03) << 6) | d;
-	}
-	*dst = '\0';
-	return result;
-}
-
-int
-tlinelen(int y)
-{
-	int i = term.col;
-
-	if (TLINE(y)[i - 1].mode & ATTR_WRAP)
-		return i;
-
-	while (i > 0 && TLINE(y)[i - 1].u == ' ')
-		--i;
-
-	return i;
-}
 
 void
 selstart(int col, int row, int snap)
@@ -851,18 +797,6 @@ tattrset(int attr)
 }
 
 void
-tsetdirt(int top, int bot)
-{
-	int i;
-
-	LIMIT(top, 0, term.row-1);
-	LIMIT(bot, 0, term.row-1);
-
-	for (i = top; i <= bot; i++)
-		term.dirty[i] = 1;
-}
-
-void
 tsetdirtattr(int attr)
 {
 	int i, j;
@@ -1102,30 +1036,6 @@ csiparse(void)
 	}
 	csiescseq.mode[0] = *p++;
 	csiescseq.mode[1] = (p < csiescseq.buf+csiescseq.len) ? *p : '\0';
-}
-
-/* for absolute user moves, when decom is set */
-void
-tmoveato(int x, int y)
-{
-	tmoveto(x, y + ((term.c.state & CURSOR_ORIGIN) ? term.top: 0));
-}
-
-void
-tmoveto(int x, int y)
-{
-	int miny, maxy;
-
-	if (term.c.state & CURSOR_ORIGIN) {
-		miny = term.top;
-		maxy = term.bot;
-	} else {
-		miny = 0;
-		maxy = term.row - 1;
-	}
-	term.c.state &= ~CURSOR_WRAPNEXT;
-	term.c.x = LIMIT(x, 0, term.col-1);
-	term.c.y = LIMIT(y, miny, maxy);
 }
 
 void
@@ -1910,16 +1820,6 @@ sendbreak(const Arg *arg)
 {
 	if (tcsendbreak(cmdfd, 0))
 		perror("Error sending break");
-}
-
-void
-tprinter(char *s, size_t len)
-{
-	if (iofd != -1 && xwrite(iofd, s, len) < 0) {
-		perror("Error writing to output file");
-		close(iofd);
-		iofd = -1;
-	}
 }
 
 void
