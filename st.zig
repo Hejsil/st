@@ -488,3 +488,16 @@ export fn tattrset(attr: c_int) c_int {
 
     return 0;
 }
+
+export fn tsetdirtattr(attr: c_int) void {
+    var i: usize = 0;
+    while (i < term.row - 1) : (i += 1) {
+        var j: usize = 0;
+        while (j < term.col - 1) : (j += 1) {
+            if (term.line[i][j].mode & @intCast(c_ushort, attr) != 0) {
+                tsetdirt(@intCast(c_int, i), @intCast(c_int, i));
+                break;
+            }
+        }
+    }
+}

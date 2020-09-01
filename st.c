@@ -588,21 +588,6 @@ ttyhangup()
 }
 
 void
-tsetdirtattr(int attr)
-{
-	int i, j;
-
-	for (i = 0; i < term.row-1; i++) {
-		for (j = 0; j < term.col-1; j++) {
-			if (term.line[i][j].mode & attr) {
-				tsetdirt(i, i);
-				break;
-			}
-		}
-	}
-}
-
-void
 tfulldirt(void)
 {
 	tsetdirt(0, term.row-1);
