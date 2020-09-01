@@ -587,21 +587,6 @@ ttyhangup()
 	kill(pid, SIGHUP);
 }
 
-int
-tattrset(int attr)
-{
-	int i, j;
-
-	for (i = 0; i < term.row-1; i++) {
-		for (j = 0; j < term.col-1; j++) {
-			if (term.line[i][j].mode & attr)
-				return 1;
-		}
-	}
-
-	return 0;
-}
-
 void
 tsetdirtattr(int attr)
 {

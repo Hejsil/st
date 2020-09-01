@@ -475,3 +475,16 @@ export fn tscrollup(orig: c_int, _n: c_int, copyhist: c_int) void {
     if (term.scr == 0)
         selscroll(orig, -n);
 }
+
+export fn tattrset(attr: c_int) c_int {
+    var i: usize = 0;
+    while (i < term.row - 1) : (i += 1) {
+        var j: usize = 0;
+        while (j < term.col - 1) : (j += 1) {
+            if (term.line[i][j].mode & @intCast(c_ushort, attr) != 0)
+                return 1;
+        }
+    }
+
+    return 0;
+}
