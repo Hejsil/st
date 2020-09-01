@@ -50,6 +50,9 @@ const CURSOR_DEFAULT: u8 = 0;
 const CURSOR_WRAPNEXT: u8 = 1;
 const CURSOR_ORIGIN: u8 = 2;
 
+const CURSOR_SAVE = 0;
+const CURSOR_LOAD = 1;
+
 const Selection = extern struct {
     mode: c_int = SEL_IDLE,
     type: c_int = 0,
@@ -499,5 +502,19 @@ export fn tsetdirtattr(attr: c_int) void {
                 break;
             }
         }
+    }
+}
+
+export fn tcursor(mode: c_int) void {
+    const Static = struct {
+        var cur: [2]TCursor = undefined;
+    };
+
+    const alt = @boolToInt(is_set(MODE_ALTSCREEN));
+    if (mode == CURSOR_SAVE) {
+        Static.cur[alt] = term.c;
+    } else if (mode == CURSOR_LOAD) {
+        term.c = Static.cur[alt];
+        tmoveto(Static.cur[alt].x, Static.cur[alt].y);
     }
 }
