@@ -32,6 +32,12 @@ const SEL_IDLE = 0;
 const SEL_EMPTY = 1;
 const SEL_READY = 2;
 
+const SEL_REGULAR = 1;
+const SEL_RECTANGULAR = 2;
+
+const SNAP_WORD = 1;
+const SNAP_LINE = 2;
+
 const CURSOR_DEFAULT: u8 = 0;
 const CURSOR_WRAPNEXT: u8 = 1;
 const CURSOR_ORIGIN: u8 = 2;
@@ -188,4 +194,99 @@ export fn selclear() void {
     sel.mode = SEL_IDLE;
     sel.ob.x = -1;
     tsetdirt(sel.nb.y, sel.ne.y);
+}
+
+const word_delimiters = [_]u32{' '};
+
+fn isdelim(u: u32) bool {
+    return mem.indexOfScalar(u32, &word_delimiters, u) != null;
+}
+
+fn between(x: var, a: var, b: var) bool {
+    return a <= x and x <= b;
+}
+
+export fn selsnap(x: *c_int, y: *c_int, direction: c_int) void {
+    switch (sel.snap) {
+        // Snap around if the word wraps around at the end or
+        // beginning of a line.
+        SNAP_WORD => {
+            var prevgb = tline(y.*)[@intCast(usize, x.*)];
+            var prevdelim = isdelim(prevgb.u);
+            while (true) {
+                var newx = x.* + direction;
+                var newy = y.*;
+                if (!between(newx, 0, term.col - 1)) {
+                    newy += direction;
+                    newx = @mod(newx + term.col, term.col);
+                    if (!between(newy, 0, term.row - 1))
+                        break;
+
+                    const yt = if (direction > 0) y.* else newy;
+                    const xt = if (direction > 0) x.* else newx;
+                    if (tline(yt)[@intCast(usize, xt)].mode & ATTR_WRAP == 0)
+                        break;
+                }
+
+                if (newx >= tlinelen(newy))
+                    break;
+
+                const gb = tline(newy)[@intCast(usize, newx)];
+                const delim = isdelim(gb.u);
+                if (gb.mode & ATTR_WDUMMY == 0 and (delim != prevdelim or
+                    (delim and gb.u != prevgb.u)))
+                {
+                    break;
+                }
+
+                x.* = newx;
+                y.* = newy;
+                prevgb = gb;
+                prevdelim = delim;
+            }
+        },
+
+        // Snap around if the the previous line or the current one
+        // has set ATTR_WRAP at its end. Then the whole next or
+        // previous line will be selected.
+        SNAP_LINE => {
+            x.* = if (direction < 0) 0 else term.col - 1;
+            if (direction < 0) {
+                while (y.* > 0) : (y.* += direction) {
+                    if (tline(y.* - 1)[@intCast(usize, term.col - 1)].mode & ATTR_WRAP == 0)
+                        break;
+                }
+            } else if (direction > 0) {
+                while (y.* < term.row - 1) : (y.* += direction) {
+                    if (tline(y.*)[@intCast(usize, term.col - 1)].mode & ATTR_WRAP == 0)
+                        break;
+                }
+            }
+        },
+        else => {},
+    }
+}
+
+export fn selnormalize() void {
+    if (sel.type == SEL_REGULAR and sel.ob.y != sel.oe.y) {
+        sel.nb.x = if (sel.ob.y < sel.oe.y) sel.ob.x else sel.oe.x;
+        sel.ne.x = if (sel.ob.y < sel.oe.y) sel.oe.x else sel.ob.x;
+    } else {
+        sel.nb.x = math.min(sel.ob.x, sel.oe.x);
+        sel.ne.x = math.max(sel.ob.x, sel.oe.x);
+    }
+    sel.nb.y = math.min(sel.ob.y, sel.oe.y);
+    sel.ne.y = math.max(sel.ob.y, sel.oe.y);
+
+    selsnap(&sel.nb.x, &sel.nb.y, -1);
+    selsnap(&sel.ne.x, &sel.ne.y, 1);
+    // expand selection over line breaks
+    if (sel.type == SEL_RECTANGULAR)
+        return;
+
+    const i = tlinelen(sel.nb.y);
+    if (i < sel.nb.x)
+        sel.nb.x = i;
+    if (tlinelen(sel.ne.y) <= sel.ne.x)
+        sel.ne.x = term.col - 1;
 }

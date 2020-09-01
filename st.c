@@ -211,9 +211,9 @@ static void tstrsequence(uchar);
 
 static void drawregion(int, int, int, int);
 
-static void selnormalize(void);
+void selnormalize(void);
 static void selscroll(int, int);
-static void selsnap(int *, int *, int);
+void selsnap(int *, int *, int);
 
 size_t utf8decode(const char *, Rune *, size_t);
 size_t utf8encode(Rune u, char *c);
@@ -298,34 +298,6 @@ selextend(int col, int row, int type, int done)
 	sel.mode = done ? SEL_IDLE : SEL_READY;
 }
 
-void
-selnormalize(void)
-{
-	int i;
-
-	if (sel.type == SEL_REGULAR && sel.ob.y != sel.oe.y) {
-		sel.nb.x = sel.ob.y < sel.oe.y ? sel.ob.x : sel.oe.x;
-		sel.ne.x = sel.ob.y < sel.oe.y ? sel.oe.x : sel.ob.x;
-	} else {
-		sel.nb.x = MIN(sel.ob.x, sel.oe.x);
-		sel.ne.x = MAX(sel.ob.x, sel.oe.x);
-	}
-	sel.nb.y = MIN(sel.ob.y, sel.oe.y);
-	sel.ne.y = MAX(sel.ob.y, sel.oe.y);
-
-	selsnap(&sel.nb.x, &sel.nb.y, -1);
-	selsnap(&sel.ne.x, &sel.ne.y, +1);
-
-	/* expand selection over line breaks */
-	if (sel.type == SEL_RECTANGULAR)
-		return;
-	i = tlinelen(sel.nb.y);
-	if (i < sel.nb.x)
-		sel.nb.x = i;
-	if (tlinelen(sel.ne.y) <= sel.ne.x)
-		sel.ne.x = term.col - 1;
-}
-
 int
 selected(int x, int y)
 {
@@ -340,79 +312,6 @@ selected(int x, int y)
 	return BETWEEN(y, sel.nb.y, sel.ne.y)
 	    && (y != sel.nb.y || x >= sel.nb.x)
 	    && (y != sel.ne.y || x <= sel.ne.x);
-}
-
-void
-selsnap(int *x, int *y, int direction)
-{
-	int newx, newy, xt, yt;
-	int delim, prevdelim;
-	Glyph *gp, *prevgp;
-
-	switch (sel.snap) {
-	case SNAP_WORD:
-		/*
-		 * Snap around if the word wraps around at the end or
-		 * beginning of a line.
-		 */
-		prevgp = &TLINE(*y)[*x];
-		prevdelim = ISDELIM(prevgp->u);
-		for (;;) {
-			newx = *x + direction;
-			newy = *y;
-			if (!BETWEEN(newx, 0, term.col - 1)) {
-				newy += direction;
-				newx = (newx + term.col) % term.col;
-				if (!BETWEEN(newy, 0, term.row - 1))
-					break;
-
-				if (direction > 0)
-					yt = *y, xt = *x;
-				else
-					yt = newy, xt = newx;
-				if (!(TLINE(yt)[xt].mode & ATTR_WRAP))
-					break;
-			}
-
-			if (newx >= tlinelen(newy))
-				break;
-
-			gp = &TLINE(newy)[newx];
-			delim = ISDELIM(gp->u);
-			if (!(gp->mode & ATTR_WDUMMY) && (delim != prevdelim
-					|| (delim && gp->u != prevgp->u)))
-				break;
-
-			*x = newx;
-			*y = newy;
-			prevgp = gp;
-			prevdelim = delim;
-		}
-		break;
-	case SNAP_LINE:
-		/*
-		 * Snap around if the the previous line or the current one
-		 * has set ATTR_WRAP at its end. Then the whole next or
-		 * previous line will be selected.
-		 */
-		*x = (direction < 0) ? 0 : term.col - 1;
-		if (direction < 0) {
-			for (; *y > 0; *y += direction) {
-				if (!(TLINE(*y-1)[term.col-1].mode
-						& ATTR_WRAP)) {
-					break;
-				}
-			}
-		} else if (direction > 0) {
-			for (; *y < term.row-1; *y += direction) {
-				if (!(TLINE(*y)[term.col-1].mode
-						& ATTR_WRAP)) {
-					break;
-				}
-			}
-		}
-		break;
-	}
 }
 
 char *
