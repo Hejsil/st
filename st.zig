@@ -338,3 +338,28 @@ export fn selstart(col: c_int, row: c_int, snap: c_int) void {
         sel.mode = SEL_READY;
     tsetdirt(sel.nb.y, sel.ne.y);
 }
+
+export fn selextend(col: c_int, row: c_int, _type: c_int, done: c_int) void {
+    if (sel.mode == SEL_IDLE)
+        return;
+    if (done != 0 and sel.mode == SEL_EMPTY) {
+        selclear();
+        return;
+    }
+
+    const oldey = sel.oe.y;
+    const oldex = sel.oe.x;
+    const oldsby = sel.nb.y;
+    const oldsey = sel.ne.y;
+    const oldtype = sel.type;
+
+    sel.oe.x = col;
+    sel.oe.y = row;
+    selnormalize();
+    sel.type = _type;
+
+    if (oldey != sel.oe.y or oldex != sel.oe.x or oldtype != sel.type or sel.mode == SEL_EMPTY)
+        tsetdirt(math.min(sel.nb.y, oldsby), math.max(sel.ne.y, oldsey));
+
+    sel.mode = if (done != 0) SEL_IDLE else SEL_READY;
+}
