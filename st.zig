@@ -28,6 +28,14 @@ const ATTR_WIDE = 1 << 9;
 const ATTR_WDUMMY = 1 << 10;
 const ATTR_BOLD_FAINT = ATTR_BOLD | ATTR_FAINT;
 
+const MODE_WRAP = 1 << 0;
+const MODE_INSERT = 1 << 1;
+const MODE_ALTSCREEN = 1 << 2;
+const MODE_CRLF = 1 << 3;
+const MODE_ECHO = 1 << 4;
+const MODE_PRINT = 1 << 5;
+const MODE_UTF8 = 1 << 6;
+
 const SEL_IDLE = 0;
 const SEL_EMPTY = 1;
 const SEL_READY = 2;
@@ -308,4 +316,25 @@ export fn selscroll(orig: c_int, n: c_int) void {
             selnormalize();
         }
     }
+}
+
+fn is_set(flag: var) bool {
+    return term.mode & flag != 0;
+}
+
+export fn selstart(col: c_int, row: c_int, snap: c_int) void {
+    selclear();
+    sel.mode = SEL_EMPTY;
+    sel.type = SEL_REGULAR;
+    sel.alt = @boolToInt(is_set(MODE_ALTSCREEN));
+    sel.snap = snap;
+    sel.oe.x = col;
+    sel.ob.x = col;
+    sel.oe.y = row;
+    sel.ob.y = row;
+    selnormalize();
+
+    if (sel.snap != 0)
+        sel.mode = SEL_READY;
+    tsetdirt(sel.nb.y, sel.ne.y);
 }
