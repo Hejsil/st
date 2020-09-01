@@ -363,3 +363,17 @@ export fn selextend(col: c_int, row: c_int, _type: c_int, done: c_int) void {
 
     sel.mode = if (done != 0) SEL_IDLE else SEL_READY;
 }
+
+export fn selected(x: c_int, y: c_int) c_int {
+    if (sel.mode == SEL_EMPTY or sel.ob.x == -1 or
+        sel.alt != @boolToInt(is_set(MODE_ALTSCREEN)))
+        return 0;
+
+    if (sel.type == SEL_RECTANGULAR)
+        return @boolToInt(between(y, sel.nb.y, sel.ne.y) and
+            between(x, sel.nb.x, sel.ne.x));
+
+    return @boolToInt(between(y, sel.nb.y, sel.ne.y) and
+        (y != sel.nb.y or x >= sel.nb.x) and
+        (y != sel.ne.y or x <= sel.ne.x));
+}
