@@ -528,3 +528,7 @@ export fn ttyhangup() void {
 export fn tfulldirt() void {
     tsetdirt(0, term.row - 1);
 }
+
+export fn tisaltscr() c_int {
+    return @boolToInt(is_set(MODE_ALTSCREEN));
+}
