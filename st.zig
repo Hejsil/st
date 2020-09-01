@@ -532,3 +532,9 @@ export fn tfulldirt() void {
 export fn tisaltscr() c_int {
     return @boolToInt(is_set(MODE_ALTSCREEN));
 }
+
+export fn tswapscreen() void {
+    mem.swap([*]Line, &term.line, &term.alt);
+    term.mode ^= MODE_ALTSCREEN;
+    tfulldirt();
+}

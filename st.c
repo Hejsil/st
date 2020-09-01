@@ -197,7 +197,7 @@ static void tsetattr(int *, int);
 static void tsetchar(Rune, Glyph *, int, int);
 void tsetdirt(int, int);
 static void tsetscroll(int, int);
-static void tswapscreen(void);
+void tswapscreen(void);
 static void tsetmode(int, int, int *, int);
 static int twrite(const char *, int, int);
 void tfulldirt(void);
@@ -617,16 +617,6 @@ tnew(int col, int row)
 	treset();
 }
 
-void
-tswapscreen(void)
-{
-	Line *tmp = term.line;
-
-	term.line = term.alt;
-	term.alt = tmp;
-	term.mode ^= MODE_ALTSCREEN;
-	tfulldirt();
-}
 
 void
 kscrolldown(const Arg* a)
