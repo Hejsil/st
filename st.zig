@@ -394,3 +394,25 @@ export fn tputtab(_n: c_int) void {
     }
     term.c.x = math.clamp(@intCast(c_int, x), 0, term.col - 1);
 }
+
+export fn tclearregion(_x1: c_int, _y1: c_int, _x2: c_int, _y2: c_int) void {
+    const x1 = math.clamp(math.min(_x1, _x2), 0, term.col - 1);
+    const x2 = math.clamp(math.max(_x1, _x2), 0, term.col - 1);
+    const y1 = math.clamp(math.min(_y1, _y2), 0, term.row - 1);
+    const y2 = math.clamp(math.max(_y1, _y2), 0, term.row - 1);
+
+    var y = @intCast(usize, y1);
+    while (y <= @intCast(usize, y2)) : (y += 1) {
+        term.dirty[y] = 1;
+        var x = @intCast(usize, x1);
+        while (x <= @intCast(usize, x2)) : (x += 1) {
+            const gp = &term.line[y][x];
+            if (selected(@intCast(c_int, x), @intCast(c_int, y)) != 0)
+                selclear();
+            gp.fg = term.c.attr.fg;
+            gp.bg = term.c.attr.bg;
+            gp.mode = 0;
+            gp.u = ' ';
+        }
+    }
+}
