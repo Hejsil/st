@@ -377,3 +377,20 @@ export fn selected(x: c_int, y: c_int) c_int {
         (y != sel.nb.y or x >= sel.nb.x) and
         (y != sel.ne.y or x <= sel.ne.x));
 }
+
+export fn tputtab(_n: c_int) void {
+    var n = _n;
+    var x: usize = @intCast(usize, term.c.x);
+    if (n > 0) {
+        while (x < term.col and n != 0) : (n -= 1) {
+            x += 1;
+            while (x < term.col and term.tabs[x] == 0) : (x += 1) {}
+        }
+    } else if (n < 0) {
+        while (x > 0 and n != 0) : (n += 1) {
+            x -= 1;
+            while (x > 0 and term.tabs[x] == 0) : (x -= 1) {}
+        }
+    }
+    term.c.x = math.clamp(@intCast(c_int, x), 0, term.col - 1);
+}

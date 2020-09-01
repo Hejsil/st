@@ -188,7 +188,7 @@ int tlinelen(int);
 void tmoveto(int, int);
 void tmoveato(int, int);
 static void tnewline(int);
-static void tputtab(int);
+void tputtab(int);
 static void tputc(Rune);
 static void treset(void);
 static void tscrollup(int, int, int);
@@ -1659,23 +1659,6 @@ tdump(void)
 
 	for (i = 0; i < term.row; ++i)
 		tdumpline(i);
-}
-
-void
-tputtab(int n)
-{
-	uint x = term.c.x;
-
-	if (n > 0) {
-		while (x < term.col && n--)
-			for (++x; x < term.col && !term.tabs[x]; ++x)
-				/* nothing */ ;
-	} else if (n < 0) {
-		while (x > 0 && n++)
-			for (--x; x > 0 && !term.tabs[x]; --x)
-				/* nothing */ ;
-	}
-	term.c.x = LIMIT(x, 0, term.col-1);
 }
 
 void
