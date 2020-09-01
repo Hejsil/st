@@ -212,7 +212,7 @@ static void tstrsequence(uchar);
 static void drawregion(int, int, int, int);
 
 void selnormalize(void);
-static void selscroll(int, int);
+void selscroll(int, int);
 void selsnap(int *, int *, int);
 
 size_t utf8decode(const char *, Rune *, size_t);
@@ -862,26 +862,6 @@ tscrollup(int orig, int n, int copyhist)
 
 	if (term.scr == 0)
 		selscroll(orig, -n);
-}
-
-void
-selscroll(int orig, int n)
-{
-	if (sel.ob.x == -1)
-		return;
-
-	if (BETWEEN(sel.nb.y, orig, term.bot) != BETWEEN(sel.ne.y, orig, term.bot)) {
-		selclear();
-	} else if (BETWEEN(sel.nb.y, orig, term.bot)) {
-		sel.ob.y += n;
-		sel.oe.y += n;
-		if (sel.ob.y < term.top || sel.ob.y > term.bot ||
-		    sel.oe.y < term.top || sel.oe.y > term.bot) {
-			selclear();
-		} else {
-			selnormalize();
-		}
-	}
 }
 
 void

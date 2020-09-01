@@ -290,3 +290,22 @@ export fn selnormalize() void {
     if (tlinelen(sel.ne.y) <= sel.ne.x)
         sel.ne.x = term.col - 1;
 }
+
+export fn selscroll(orig: c_int, n: c_int) void {
+    if (sel.ob.x == -1)
+        return;
+
+    if (between(sel.nb.y, orig, term.bot) != between(sel.ne.y, orig, term.bot)) {
+        selclear();
+    } else if (between(sel.nb.y, orig, term.bot)) {
+        sel.ob.y += n;
+        sel.oe.y += n;
+        if (sel.ob.y < term.top or sel.ob.y > term.bot or
+            sel.oe.y < term.top or sel.oe.y > term.bot)
+        {
+            selclear();
+        } else {
+            selnormalize();
+        }
+    }
+}
