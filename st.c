@@ -191,8 +191,8 @@ static void tnewline(int);
 void tputtab(int);
 static void tputc(Rune);
 static void treset(void);
-static void tscrollup(int, int, int);
-static void tscrolldown(int, int, int);
+void tscrollup(int, int, int);
+void tscrolldown(int, int, int);
 static void tsetattr(int *, int);
 static void tsetchar(Rune, Glyph *, int, int);
 void tsetdirt(int, int);
@@ -722,64 +722,6 @@ kscrollup(const Arg* a)
 	}
 }
 
-void
-tscrolldown(int orig, int n, int copyhist)
-{
-	int i;
-	Line temp;
-
-	LIMIT(n, 0, term.bot-orig+1);
-
-	if (copyhist) {
-		term.histi = (term.histi - 1 + HISTSIZE) % HISTSIZE;
-		temp = term.hist[term.histi];
-		term.hist[term.histi] = term.line[term.bot];
-		term.line[term.bot] = temp;
-	}
-
-	tsetdirt(orig, term.bot-n);
-	tclearregion(0, term.bot-n+1, term.col-1, term.bot);
-
-	for (i = term.bot; i >= orig+n; i--) {
-		temp = term.line[i];
-		term.line[i] = term.line[i-n];
-		term.line[i-n] = temp;
-	}
-
-	if (term.scr == 0)
-		selscroll(orig, n);
-}
-
-void
-tscrollup(int orig, int n, int copyhist)
-{
-	int i;
-	Line temp;
-
-	LIMIT(n, 0, term.bot-orig+1);
-
-	if (copyhist) {
-		term.histi = (term.histi + 1) % HISTSIZE;
-		temp = term.hist[term.histi];
-		term.hist[term.histi] = term.line[orig];
-		term.line[orig] = temp;
-	}
-
-	if (term.scr > 0 && term.scr < HISTSIZE)
-		term.scr = MIN(term.scr + n, HISTSIZE-1);
-
-	tclearregion(0, orig, term.col-1, orig+n-1);
-	tsetdirt(orig+n, term.bot);
-
-	for (i = orig; i <= term.bot-n; i++) {
-		temp = term.line[i];
-		term.line[i] = term.line[i+n];
-		term.line[i+n] = temp;
-	}
-
-	if (term.scr == 0)
-		selscroll(orig, -n);
-}
 
 void
 tnewline(int first_col)

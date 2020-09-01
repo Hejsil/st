@@ -416,3 +416,62 @@ export fn tclearregion(_x1: c_int, _y1: c_int, _x2: c_int, _y2: c_int) void {
         }
     }
 }
+
+export fn tscrolldown(orig: c_int, _n: c_int, copyhist: c_int) void {
+    const n = math.clamp(_n, 0, term.bot - orig + 1);
+
+    if (copyhist != 0) {
+        term.histi = @mod(term.histi - 1 + histsize, histsize);
+        mem.swap(
+            Line,
+            &term.hist[@intCast(usize, term.histi)],
+            &term.line[@intCast(usize, term.bot)],
+        );
+    }
+
+    tsetdirt(orig, term.bot - n);
+    tclearregion(0, term.bot - n + 1, term.col - 1, term.bot);
+
+    var i = term.bot;
+    while (i >= orig + n) : (i -= 1) {
+        mem.swap(
+            Line,
+            &term.line[@intCast(usize, i)],
+            &term.line[@intCast(usize, i - n)],
+        );
+    }
+
+    if (term.scr == 0)
+        selscroll(orig, n);
+}
+
+export fn tscrollup(orig: c_int, _n: c_int, copyhist: c_int) void {
+    const n = math.clamp(_n, 0, term.bot - orig + 1);
+
+    if (copyhist != 0) {
+        term.histi = @mod(term.histi + 1, histsize);
+        mem.swap(
+            Line,
+            &term.hist[@intCast(usize, term.histi)],
+            &term.line[@intCast(usize, orig)],
+        );
+    }
+
+    if (term.scr > 0 and term.scr < histsize)
+        term.scr = math.min(term.scr + n, histsize - 1);
+
+    tclearregion(0, orig, term.col - 1, orig + n - 1);
+    tsetdirt(orig + n, term.bot);
+
+    var i = orig;
+    while (i <= term.bot - n) : (i += 1) {
+        mem.swap(
+            Line,
+            &term.line[@intCast(usize, i)],
+            &term.line[@intCast(usize, i + n)],
+        );
+    }
+
+    if (term.scr == 0)
+        selscroll(orig, -n);
+}
