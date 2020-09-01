@@ -471,16 +471,6 @@ getsel(void)
 }
 
 void
-selclear(void)
-{
-	if (sel.ob.x == -1)
-		return;
-	sel.mode = SEL_IDLE;
-	sel.ob.x = -1;
-	tsetdirt(sel.nb.y, sel.ne.y);
-}
-
-void
 die(const char *errstr, ...)
 {
 	va_list ap;

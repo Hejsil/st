@@ -181,3 +181,11 @@ export fn tprinter(s: [*]const u8, len: usize) void {
         iofd = 0;
     };
 }
+
+export fn selclear() void {
+    if (sel.ob.x == -1)
+        return;
+    sel.mode = SEL_IDLE;
+    sel.ob.x = -1;
+    tsetdirt(sel.nb.y, sel.ne.y);
+}
