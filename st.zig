@@ -109,6 +109,7 @@ export var term: Term = Term{};
 export var sel: Selection = Selection{};
 export var cmdfd: os.fd_t = 0;
 export var iofd: os.fd_t = 1;
+export var pid: os.pid_t = 0;
 
 export fn xwrite(fd: os.fd_t, str: [*]const u8, len: usize) isize {
     const file = fs.File{ .handle = fd, .io_mode = io.mode };
@@ -517,4 +518,13 @@ export fn tcursor(mode: c_int) void {
         term.c = Static.cur[alt];
         tmoveto(Static.cur[alt].x, Static.cur[alt].y);
     }
+}
+
+export fn ttyhangup() void {
+    // Send SIGHUP to shell
+    os.kill(pid, os.SIGHUP) catch unreachable;
+}
+
+export fn tfulldirt() void {
+    tsetdirt(0, term.row - 1);
 }

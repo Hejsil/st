@@ -200,7 +200,7 @@ static void tsetscroll(int, int);
 static void tswapscreen(void);
 static void tsetmode(int, int, int *, int);
 static int twrite(const char *, int, int);
-static void tfulldirt(void);
+void tfulldirt(void);
 static void tcontrolcode(uchar );
 static void tdectest(char );
 static void tdefutf8(char);
@@ -226,10 +226,10 @@ extern Term term;
 extern Selection sel;
 extern int32_t cmdfd;
 extern int iofd;
+extern pid_t pid;
 
 static CSIEscape csiescseq;
 static STREscape strescseq;
-static pid_t pid;
 
 char *
 getsel(void)
@@ -580,18 +580,6 @@ ttyresize(int tw, int th)
 		fprintf(stderr, "Couldn't set window size: %s\n", strerror(errno));
 }
 
-void
-ttyhangup()
-{
-	/* Send SIGHUP to shell */
-	kill(pid, SIGHUP);
-}
-
-void
-tfulldirt(void)
-{
-	tsetdirt(0, term.row-1);
-}
 
 void
 treset(void)
