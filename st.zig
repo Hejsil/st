@@ -538,3 +538,13 @@ export fn tswapscreen() void {
     term.mode ^= MODE_ALTSCREEN;
     tfulldirt();
 }
+
+export fn tnewline(first_col: c_int) void {
+    var y = term.c.y;
+    if (y == term.bot) {
+        tscrollup(term.top, 1, 1);
+    } else {
+        y += 1;
+    }
+    tmoveto(if (first_col != 0) 0 else term.c.x, y);
+}

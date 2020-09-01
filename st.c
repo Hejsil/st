@@ -187,7 +187,7 @@ static void tinsertblankline(int);
 int tlinelen(int);
 void tmoveto(int, int);
 void tmoveato(int, int);
-static void tnewline(int);
+void tnewline(int);
 void tputtab(int);
 static void tputc(Rune);
 static void treset(void);
@@ -649,20 +649,6 @@ kscrollup(const Arg* a)
 		selscroll(0, n);
 		tfulldirt();
 	}
-}
-
-
-void
-tnewline(int first_col)
-{
-	int y = term.c.y;
-
-	if (y == term.bot) {
-		tscrollup(term.top, 1, 1);
-	} else {
-		y++;
-	}
-	tmoveto(first_col ? 0 : term.c.x, y);
 }
 
 void
