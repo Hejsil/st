@@ -548,3 +548,14 @@ export fn tnewline(first_col: c_int) void {
     }
     tmoveto(if (first_col != 0) 0 else term.c.x, y);
 }
+
+export fn tdeletechar(_n: c_int) void {
+    const n = math.clamp(_n, 0, term.col - term.c.x);
+    const dst = @intCast(usize, term.c.x);
+    const src = @intCast(usize, term.c.x + n);
+    const size = @intCast(usize, term.col) - src;
+    const line = term.line[@intCast(usize, term.c.y)];
+
+    mem.copy(Glyph, (line + dst)[0..size], (line + src)[0..size]);
+    tclearregion(term.col - n, term.c.y, term.col - 1, term.c.y);
+}
