@@ -181,9 +181,9 @@ static void tdump(void);
 void tclearregion(int, int, int, int);
 void tcursor(int);
 void tdeletechar(int);
-static void tdeleteline(int);
+void tdeleteline(int);
 void tinsertblank(int);
-static void tinsertblankline(int);
+void tinsertblankline(int);
 int tlinelen(int);
 void tmoveto(int, int);
 void tmoveato(int, int);
@@ -715,20 +715,6 @@ tsetchar(Rune u, Glyph *attr, int x, int y)
 	term.dirty[y] = 1;
 	term.line[y][x] = *attr;
 	term.line[y][x].u = u;
-}
-
-void
-tinsertblankline(int n)
-{
-	if (BETWEEN(term.c.y, term.top, term.bot))
-		tscrolldown(term.c.y, n, 0);
-}
-
-void
-tdeleteline(int n)
-{
-	if (BETWEEN(term.c.y, term.top, term.bot))
-		tscrollup(term.c.y, n, 0);
 }
 
 int32_t

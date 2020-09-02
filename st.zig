@@ -561,7 +561,6 @@ export fn tdeletechar(_n: c_int) void {
 }
 
 export fn tinsertblank(_n: c_int) void {
-    debug.warn("test\n", .{});
     const n = math.clamp(_n, 0, term.col - term.c.x);
     const dst = @intCast(usize, term.c.x + n);
     const src = @intCast(usize, term.c.x);
@@ -570,4 +569,14 @@ export fn tinsertblank(_n: c_int) void {
 
     mem.copyBackwards(Glyph, (line + dst)[0..size], (line + src)[0..size]);
     tclearregion(@intCast(c_int, src), term.c.y, @intCast(c_int, dst - 1), term.c.y);
+}
+
+export fn tinsertblankline(n: c_int) void {
+    if (between(term.c.y, term.top, term.bot))
+        tscrolldown(term.c.y, n, 0);
+}
+
+export fn tdeleteline(n: c_int) void {
+    if (between(term.c.y, term.top, term.bot))
+        tscrollup(term.c.y, n, 0);
 }
