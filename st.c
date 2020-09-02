@@ -182,7 +182,7 @@ void tclearregion(int, int, int, int);
 void tcursor(int);
 void tdeletechar(int);
 static void tdeleteline(int);
-static void tinsertblank(int);
+void tinsertblank(int);
 static void tinsertblankline(int);
 int tlinelen(int);
 void tmoveto(int, int);
@@ -715,23 +715,6 @@ tsetchar(Rune u, Glyph *attr, int x, int y)
 	term.dirty[y] = 1;
 	term.line[y][x] = *attr;
 	term.line[y][x].u = u;
-}
-
-void
-tinsertblank(int n)
-{
-	int dst, src, size;
-	Glyph *line;
-
-	LIMIT(n, 0, term.col - term.c.x);
-
-	dst = term.c.x + n;
-	src = term.c.x;
-	size = term.col - dst;
-	line = term.line[term.c.y];
-
-	memmove(&line[dst], &line[src], size * sizeof(Glyph));
-	tclearregion(src, term.c.y, dst - 1, term.c.y);
 }
 
 void

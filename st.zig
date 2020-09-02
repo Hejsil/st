@@ -559,3 +559,15 @@ export fn tdeletechar(_n: c_int) void {
     mem.copy(Glyph, (line + dst)[0..size], (line + src)[0..size]);
     tclearregion(term.col - n, term.c.y, term.col - 1, term.c.y);
 }
+
+export fn tinsertblank(_n: c_int) void {
+    debug.warn("test\n", .{});
+    const n = math.clamp(_n, 0, term.col - term.c.x);
+    const dst = @intCast(usize, term.c.x + n);
+    const src = @intCast(usize, term.c.x);
+    const size = @intCast(usize, term.col) - dst;
+    const line = term.line[@intCast(usize, term.c.y)];
+
+    mem.copyBackwards(Glyph, (line + dst)[0..size], (line + src)[0..size]);
+    tclearregion(@intCast(c_int, src), term.c.y, @intCast(c_int, dst - 1), term.c.y);
+}
